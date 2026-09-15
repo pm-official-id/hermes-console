@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Hermes Console"
+description = "A local-first control plane for launching, connecting, configuring, and monitoring AI services such as local LLM runners, OpenCode, OpenDesign, OpenClaw, OpenWebUI, and n8n from one Docker-style portal."
+version = "1.0.0"
+id = "artifacts/hermes-console"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20285
+
+[services.development]
+run = "pnpm --filter @workspace/hermes-console run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hermes-console", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hermes-console/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20285"
+BASE_PATH = "/"
