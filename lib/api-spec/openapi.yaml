@@ -1,0 +1,285 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: control-plane
+    description: Local AI service control plane
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /overview:
+    get:
+      operationId: getOverview
+      tags: [control-plane]
+      summary: Get the control plane overview
+      responses:
+        "200":
+          description: Current host and service overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Overview"
+  /services:
+    get:
+      operationId: listServices
+      tags: [control-plane]
+      summary: List managed services
+      responses:
+        "200":
+          description: Managed services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+  /services/{serviceId}:
+    get:
+      operationId: getService
+      tags: [control-plane]
+      summary: Get one managed service
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      responses:
+        "200":
+          description: Managed service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Service not found
+    patch:
+      operationId: updateService
+      tags: [control-plane]
+      summary: Update managed service configuration
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceUpdate"
+      responses:
+        "200":
+          description: Updated managed service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Service not found
+  /services/{serviceId}/action:
+    post:
+      operationId: controlService
+      tags: [control-plane]
+      summary: Start, stop, or restart a managed service
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceAction"
+      responses:
+        "200":
+          description: Updated managed service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Service not found
+  /services/{serviceId}/logs:
+    get:
+      operationId: getServiceLogs
+      tags: [control-plane]
+      summary: Get recent service logs
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      responses:
+        "200":
+          description: Recent service log lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogLine"
+        "404":
+          description: Service not found
+  /connections:
+    get:
+      operationId: listConnections
+      tags: [control-plane]
+      summary: List service connections
+      responses:
+        "200":
+          description: Service connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Connection"
+components:
+  parameters:
+    ServiceId:
+      name: serviceId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    HostStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        os:
+          type: string
+        architecture:
+          type: string
+        docker:
+          type: string
+        cpuPercent:
+          type: number
+        memoryPercent:
+          type: number
+        memoryUsed:
+          type: string
+        memoryTotal:
+          type: string
+      required: [name, os, architecture, docker, cpuPercent, memoryPercent, memoryUsed, memoryTotal]
+    Overview:
+      type: object
+      properties:
+        host:
+          $ref: "#/components/schemas/HostStatus"
+        running:
+          type: integer
+        total:
+          type: integer
+        healthy:
+          type: integer
+        attention:
+          type: integer
+        lastUpdated:
+          type: string
+      required: [host, running, total, healthy, attention, lastUpdated]
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [llm, coding, automation, interface, orchestration]
+        status:
+          type: string
+          enum: [running, stopped, starting, warning]
+        health:
+          type: string
+          enum: [healthy, degraded, offline, unknown]
+        version:
+          type: string
+        port:
+          type: integer
+        image:
+          type: string
+        uptime:
+          type: string
+        cpuPercent:
+          type: number
+        memory:
+          type: string
+        configured:
+          type: boolean
+        connections:
+          type: integer
+        accent:
+          type: string
+      required: [id, name, slug, description, category, status, health, version, port, image, uptime, cpuPercent, memory, configured, connections, accent]
+    ServiceUpdate:
+      type: object
+      properties:
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        image:
+          type: string
+        configured:
+          type: boolean
+    ServiceAction:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [start, stop, restart]
+      required: [action]
+    LogLine:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+        stream:
+          type: string
+          enum: [system, stdout, stderr]
+        message:
+          type: string
+      required: [id, timestamp, stream, message]
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+        protocol:
+          type: string
+        status:
+          type: string
+          enum: [connected, pending, needs-config]
+        detail:
+          type: string
+      required: [id, source, target, protocol, status, detail]
+
