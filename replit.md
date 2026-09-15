@@ -38,18 +38,21 @@ Hermes Console is a local-first control plane for launching, connecting, configu
 
 - Live overview of host telemetry and managed service health
 - Service catalog with lifecycle controls and configuration
+- Curated open-source ecosystem catalog for routers, agents, runtimes, workflows,
+  memory, observability, and multimodal tools
 - Recent service logs
 - Connection topology between runners, coding tools, automation, interfaces, and orchestration
 - Settings surface for local adapter and Docker defaults
 
 ## User preferences
 
-The user wants the product to make local AI services easy to run, configure, monitor, and interlink from one portal, with a simple command-driven path such as `localAI -opencode`.
+The user wants the product to make local AI services easy to run, configure, monitor, and interlink from one portal, with a simple command-driven path such as `localAI -opencode`. The ecosystem should include OmniRouter and complementary open-source tools without treating every catalog entry as installed by default.
 
 ## Gotchas
 
 - Re-run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`.
 - The API server currently exposes a seeded control-plane model; host-level Docker process control is the next adapter boundary.
+- The recommended tool universe and rollout priorities are documented in `docs/OPEN_SOURCE_ECOSYSTEM_CATALOG.md`.
 
 ## Pointers
 

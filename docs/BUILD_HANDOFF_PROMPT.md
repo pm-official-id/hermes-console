@@ -15,8 +15,11 @@ throwing away the existing work.
 
 Hermes Console is a Docker/Portainer-like portal for local AI infrastructure.
 It should make it easy to install, configure, connect, monitor, and operate
-local services such as LocalAI, Ollama-compatible runners, mtplx/olmx, OpenCode,
-OpenDesign, OpenClaw, Open WebUI, n8n, and Hermes itself.
+local services such as LocalAI, Ollama-compatible runners, mtplx/olmx, llama.cpp,
+LiteLLM, OmniRouter, vLLM, SGLang, OpenCode, OpenHands, Goose, Aider,
+OpenDesign, OpenClaw, Browser Use, Open WebUI, LibreChat, AnythingLLM, n8n,
+Dify, Langflow, Qdrant, pgvector, SearXNG, Langfuse, OpenTelemetry, ComfyUI,
+whisper.cpp, Piper, and Hermes itself.
 
 The core promise is:
 
@@ -39,6 +42,7 @@ This is a pnpm TypeScript monorepo with:
 - Drizzle/PostgreSQL package: `lib/db`
 - Component canvas preview artifact: `artifacts/mockup-sandbox`
 - Canvas design source: `artifacts/mockup-sandbox/src/components/mockups/hermes/HermesOrbit.tsx`
+- Open-source ecosystem catalog: `docs/OPEN_SOURCE_ECOSYSTEM_CATALOG.md`
 - Project instructions and commands: `replit.md`
 
 Run the existing checks before changing architecture:
@@ -82,6 +86,9 @@ The existing console includes:
 - Connection topology between services.
 - Settings for adapter and Docker defaults.
 - Responsive Hermes Console styling.
+- Curated ecosystem catalog that separates available tools from installed
+  services and explicitly marks core, optional, experimental, and deprecated
+  integrations.
 
 The existing API includes:
 
@@ -159,9 +166,23 @@ service-specific configuration in route handlers. A manifest should describe:
 - Compatible connections and configuration fields.
 - Safe lifecycle capabilities.
 
-Include first-class manifests for LocalAI, OpenCode, Open WebUI, n8n, Hermes,
-and OpenDesign. Add an extension path for OpenClaw and other plugin-style
-services.
+Use `docs/OPEN_SOURCE_ECOSYSTEM_CATALOG.md` as the initial catalog source.
+Include first-class manifests for LocalAI, Ollama, llama.cpp, LiteLLM,
+OpenCode, Open WebUI, n8n, Hermes, and OpenDesign. Add OmniRouter as an
+experimental router manifest with route, fallback, latency, and upstream
+health telemetry. Add an extension path for OpenHands, Goose, Aider, OpenClaw,
+Browser Use, LibreChat, AnythingLLM, Dify, Langflow, Qdrant, pgvector,
+SearXNG, Langfuse, OpenTelemetry, ComfyUI, whisper.cpp, Piper, and other
+plugin-style services.
+
+Do not install every catalog entry by default. Catalog entries, install
+previews, installed services, and connections are separate domain objects.
+Every manifest must include the upstream repository, license, version policy,
+architecture/GPU requirements, health check, resource profile, ports, volumes,
+secret references, capabilities, dependencies, security notes, and compatible
+connection types. Do not create default manifests for projects marked
+deprecated or archived; Flowise is currently a reference-only example because
+its upstream repository is archived.
 
 #### 4. Configuration and secrets
 
@@ -214,6 +235,9 @@ Make these end-to-end workflows reliable:
 10. Create and test service connections.
 11. Export a portable deployment configuration for another host.
 12. Recover from an unavailable host or partially completed action.
+13. Browse the open-source catalog, compare compatible routers/agents/runtimes,
+    and install a selected stack without confusing availability with
+    installation.
 
 Every async operation needs visible loading, success, failure, retry, and
 cancel/rollback behavior where technically possible.
@@ -232,6 +256,9 @@ hermes service stop localai
 hermes service restart localai
 hermes service logs localai --follow
 hermes service status
+hermes router list
+hermes router test omnirouter
+hermes agent install openhands --with litellm
 hermes connection test
 hermes export
 ```
@@ -307,6 +334,8 @@ Add automated coverage for:
 - CLI parsing and exit codes.
 - Log pagination/follow behavior.
 - Import/export round trips.
+- Catalog filtering, install previews, compatibility checks, and deprecated
+  entry handling.
 - React UI happy paths and error states.
 
 Run at minimum:
@@ -327,11 +356,13 @@ Work in vertical slices. Keep the app runnable after each slice:
 1. Establish domain types, adapter interface, mock adapter, and contract tests.
 2. Add real Docker adapter behind the interface.
 3. Add manifests and install/preview workflows.
-4. Add durable actions, logs, telemetry, and realtime updates.
-5. Add connection management and portable export/import.
-6. Add CLI using shared contracts.
-7. Add authentication, authorization, audit events, and threat-model findings.
-8. Polish responsive UX, accessibility, tests, and operational docs.
+4. Add the catalog and separate discovery, install, installed-service, and
+   connection states.
+5. Add durable actions, logs, telemetry, and realtime updates.
+6. Add connection management and portable export/import.
+7. Add CLI using shared contracts.
+8. Add authentication, authorization, audit events, and threat-model findings.
+9. Polish responsive UX, accessibility, tests, and operational docs.
 
 Before each major slice, inspect the current code rather than assuming this
 prompt is newer than the repository. Prefer small compatible changes over
@@ -344,6 +375,9 @@ Do not call this product-ready until:
 
 - A user can connect a supported host, install a manifest-backed service, and
   operate it from the portal.
+- A user can discover the supported open-source ecosystem, compare compatible
+  tools, and install a selected router/agent/runtime stack without receiving
+  a misleading list of fake installed services.
 - The same operations work through the CLI.
 - The mock adapter provides deterministic development and test behavior.
 - Docker host access is isolated behind a validated adapter boundary.
