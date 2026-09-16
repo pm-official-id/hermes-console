@@ -15,4 +15,8 @@ export const ServiceCategory = {
   automation: 'automation',
   interface: 'interface',
   orchestration: 'orchestration',
+  observability: 'observability',
+  tool: 'tool',
+  memory: 'memory',
+  runtime: 'runtime',
 } as const;

@@ -47,7 +47,7 @@ export const ListServicesResponseItem = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string(),
-  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration']),
+  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration', 'observability', 'tool', 'memory', 'runtime']),
   "status": zod.enum(['running', 'stopped', 'starting', 'warning']),
   "health": zod.enum(['healthy', 'degraded', 'offline', 'unknown']),
   "version": zod.string(),
@@ -64,6 +64,88 @@ export const ListServicesResponse = zod.array(ListServicesResponseItem)
 
 
 /**
+ * @summary List ecosystem catalog entries
+ */
+export const ListCatalogResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "tier": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "upstreamUrl": zod.string(),
+  "license": zod.string(),
+  "image": zod.string(),
+  "defaultPort": zod.number().int(),
+  "installed": zod.boolean(),
+  "accent": zod.string()
+})
+export const ListCatalogResponse = zod.array(ListCatalogResponseItem)
+
+
+/**
+ * @summary Get detailed manifest for a catalog item
+ */
+export const GetCatalogManifestParams = zod.object({
+  "manifestId": zod.coerce.string()
+})
+
+export const GetCatalogManifestResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "tier": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "upstreamUrl": zod.string(),
+  "license": zod.string(),
+  "image": zod.string(),
+  "defaultPort": zod.number().int(),
+  "ports": zod.array(zod.object({
+  "containerPort": zod.number().int(),
+  "hostPort": zod.number().int(),
+  "label": zod.string()
+})),
+  "env": zod.array(zod.object({
+  "key": zod.string(),
+  "description": zod.string(),
+  "required": zod.boolean(),
+  "defaultValue": zod.string().optional(),
+  "secret": zod.boolean()
+})),
+  "capabilities": zod.array(zod.string()),
+  "compatibleConnections": zod.array(zod.string()),
+  "securityNote": zod.string()
+})
+
+
+/**
+ * @summary Install a service manifest into the managed fleet
+ */
+export const InstallServiceBody = zod.object({
+  "manifestId": zod.string(),
+  "customPort": zod.number().int().optional()
+})
+
+export const InstallServiceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration', 'observability', 'tool', 'memory', 'runtime']),
+  "status": zod.enum(['running', 'stopped', 'starting', 'warning']),
+  "health": zod.enum(['healthy', 'degraded', 'offline', 'unknown']),
+  "version": zod.string(),
+  "port": zod.number().int(),
+  "image": zod.string(),
+  "uptime": zod.string(),
+  "cpuPercent": zod.number(),
+  "memory": zod.string(),
+  "configured": zod.boolean(),
+  "connections": zod.number().int(),
+  "accent": zod.string()
+})
+
+
+/**
  * @summary Get one managed service
  */
 export const GetServiceParams = zod.object({
@@ -75,7 +157,7 @@ export const GetServiceResponse = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string(),
-  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration']),
+  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration', 'observability', 'tool', 'memory', 'runtime']),
   "status": zod.enum(['running', 'stopped', 'starting', 'warning']),
   "health": zod.enum(['healthy', 'degraded', 'offline', 'unknown']),
   "version": zod.string(),
@@ -112,7 +194,7 @@ export const UpdateServiceResponse = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string(),
-  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration']),
+  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration', 'observability', 'tool', 'memory', 'runtime']),
   "status": zod.enum(['running', 'stopped', 'starting', 'warning']),
   "health": zod.enum(['healthy', 'degraded', 'offline', 'unknown']),
   "version": zod.string(),
@@ -124,6 +206,19 @@ export const UpdateServiceResponse = zod.object({
   "configured": zod.boolean(),
   "connections": zod.number().int(),
   "accent": zod.string()
+})
+
+
+/**
+ * @summary Remove a managed service from the fleet
+ */
+export const RemoveServiceParams = zod.object({
+  "serviceId": zod.coerce.string()
+})
+
+export const RemoveServiceResponse = zod.object({
+  "success": zod.boolean(),
+  "serviceId": zod.string()
 })
 
 
@@ -143,7 +238,7 @@ export const ControlServiceResponse = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string(),
-  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration']),
+  "category": zod.enum(['llm', 'coding', 'automation', 'interface', 'orchestration', 'observability', 'tool', 'memory', 'runtime']),
   "status": zod.enum(['running', 'stopped', 'starting', 'warning']),
   "health": zod.enum(['healthy', 'degraded', 'offline', 'unknown']),
   "version": zod.string(),

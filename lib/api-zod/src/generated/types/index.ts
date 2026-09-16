@@ -6,13 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './catalogItem';
 export * from './connection';
 export * from './connectionStatus';
+export * from './envVarSpec';
 export * from './healthStatus';
 export * from './hostStatus';
+export * from './installServiceRequest';
 export * from './logLine';
 export * from './logLineStream';
+export * from './manifestDetail';
 export * from './overview';
+export * from './portMapping';
+export * from './removeServiceResponse';
 export * from './service';
 export * from './serviceAction';
 export * from './serviceActionAction';

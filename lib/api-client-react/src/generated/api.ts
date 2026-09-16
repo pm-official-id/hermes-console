@@ -20,10 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CatalogItem,
   Connection,
   HealthStatus,
+  InstallServiceRequest,
   LogLine,
+  ManifestDetail,
   Overview,
+  RemoveServiceResponse,
   Service,
   ServiceAction,
   ServiceUpdate
@@ -288,6 +292,248 @@ export function useListServices<TData = Awaited<ReturnType<typeof listServices>>
 
 
 
+export const getListCatalogUrl = () => {
+
+
+
+
+  return `/api/catalog`
+}
+
+/**
+ * @summary List ecosystem catalog entries
+ */
+export const listCatalog = async ( options?: Parameters<typeof customFetch>[1]): Promise<CatalogItem[]> => {
+
+  return customFetch<CatalogItem[]>(getListCatalogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCatalogQueryKey = () => {
+    return [
+    `/api/catalog`
+    ] as const;
+    }
+
+
+export const getListCatalogQueryOptions = <TData = Awaited<ReturnType<typeof listCatalog>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCatalogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCatalog>>> = ({ signal }) => listCatalog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof listCatalog>>>
+export type ListCatalogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List ecosystem catalog entries
+ */
+
+export function useListCatalog<TData = Awaited<ReturnType<typeof listCatalog>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCatalogQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCatalogManifestUrl = (manifestId: string,) => {
+
+
+
+
+  return `/api/catalog/${manifestId}`
+}
+
+/**
+ * @summary Get detailed manifest for a catalog item
+ */
+export const getCatalogManifest = async (manifestId: string, options?: Parameters<typeof customFetch>[1]): Promise<ManifestDetail> => {
+
+  return customFetch<ManifestDetail>(getGetCatalogManifestUrl(manifestId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCatalogManifestQueryKey = (manifestId: string,) => {
+    return [
+    `/api/catalog/${manifestId}`
+    ] as const;
+    }
+
+
+export const getGetCatalogManifestQueryOptions = <TData = Awaited<ReturnType<typeof getCatalogManifest>>, TError = ErrorType<void>>(manifestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCatalogManifest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCatalogManifestQueryKey(manifestId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCatalogManifest>>> = ({ signal }) => getCatalogManifest(manifestId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: manifestId !== null && manifestId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCatalogManifest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCatalogManifestQueryResult = NonNullable<Awaited<ReturnType<typeof getCatalogManifest>>>
+export type GetCatalogManifestQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get detailed manifest for a catalog item
+ */
+
+export function useGetCatalogManifest<TData = Awaited<ReturnType<typeof getCatalogManifest>>, TError = ErrorType<void>>(
+ manifestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCatalogManifest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCatalogManifestQueryOptions(manifestId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getInstallServiceUrl = () => {
+
+
+
+
+  return `/api/services/install`
+}
+
+/**
+ * @summary Install a service manifest into the managed fleet
+ */
+export const installService = async (installServiceRequest: InstallServiceRequest, options?: Parameters<typeof customFetch>[1]): Promise<Service> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Service>(getInstallServiceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(installServiceRequest)
+  }
+);}
+
+
+
+
+
+export const getInstallServiceMutationKey = () => ['installService'] as const;
+
+export const getInstallServiceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installService>>, TError,InstallServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof installService>>, TError,InstallServiceMutationVariables, TContext> => {
+
+const mutationKey = getInstallServiceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof installService>>, InstallServiceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  installService(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstallServiceMutationResult = NonNullable<Awaited<ReturnType<typeof installService>>>
+    export type InstallServiceMutationBody = BodyType<InstallServiceRequest>
+    export type InstallServiceMutationError = ErrorType<unknown>
+    export type InstallServiceMutationVariables = {data: BodyType<InstallServiceRequest>}
+
+    /**
+ * @summary Install a service manifest into the managed fleet
+ */
+export const useInstallService = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installService>>, TError,InstallServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof installService>>,
+        TError,
+        InstallServiceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInstallServiceMutationOptions(options));
+    }
+
 export const getGetServiceUrl = (serviceId: string,) => {
 
 
@@ -452,6 +698,80 @@ export const useUpdateService = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateServiceMutationOptions(options));
+    }
+
+export const getRemoveServiceUrl = (serviceId: string,) => {
+
+
+
+
+  return `/api/services/${serviceId}`
+}
+
+/**
+ * @summary Remove a managed service from the fleet
+ */
+export const removeService = async (serviceId: string, options?: Parameters<typeof customFetch>[1]): Promise<RemoveServiceResponse> => {
+
+  return customFetch<RemoveServiceResponse>(getRemoveServiceUrl(serviceId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveServiceMutationKey = () => ['removeService'] as const;
+
+export const getRemoveServiceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeService>>, TError,RemoveServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeService>>, TError,RemoveServiceMutationVariables, TContext> => {
+
+const mutationKey = getRemoveServiceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeService>>, RemoveServiceMutationVariables> = (props) => {
+          const {serviceId} = props ?? {};
+
+          return  removeService(serviceId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveServiceMutationResult = NonNullable<Awaited<ReturnType<typeof removeService>>>
+
+    export type RemoveServiceMutationError = ErrorType<void>
+    export type RemoveServiceMutationVariables = {serviceId: string}
+
+    /**
+ * @summary Remove a managed service from the fleet
+ */
+export const useRemoveService = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeService>>, TError,RemoveServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeService>>,
+        TError,
+        RemoveServiceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveServiceMutationOptions(options));
     }
 
 export const getControlServiceUrl = (serviceId: string,) => {

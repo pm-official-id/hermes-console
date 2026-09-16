@@ -38,6 +38,10 @@ export const ServiceCategory = {
   automation: 'automation',
   interface: 'interface',
   orchestration: 'orchestration',
+  observability: 'observability',
+  tool: 'tool',
+  memory: 'memory',
+  runtime: 'runtime',
 } as const;
 
 export type ServiceStatus = typeof ServiceStatus[keyof typeof ServiceStatus];
@@ -77,6 +81,61 @@ export interface Service {
   configured: boolean;
   connections: number;
   accent: string;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  tier: string;
+  category: string;
+  description: string;
+  upstreamUrl: string;
+  license: string;
+  image: string;
+  defaultPort: number;
+  installed: boolean;
+  accent: string;
+}
+
+export interface PortMapping {
+  containerPort: number;
+  hostPort: number;
+  label: string;
+}
+
+export interface EnvVarSpec {
+  key: string;
+  description: string;
+  required: boolean;
+  defaultValue?: string;
+  secret: boolean;
+}
+
+export interface ManifestDetail {
+  id: string;
+  name: string;
+  tier: string;
+  category: string;
+  description: string;
+  upstreamUrl: string;
+  license: string;
+  image: string;
+  defaultPort: number;
+  ports: PortMapping[];
+  env: EnvVarSpec[];
+  capabilities: string[];
+  compatibleConnections: string[];
+  securityNote: string;
+}
+
+export interface InstallServiceRequest {
+  manifestId: string;
+  customPort?: number;
+}
+
+export interface RemoveServiceResponse {
+  success: boolean;
+  serviceId: string;
 }
 
 export interface ServiceUpdate {

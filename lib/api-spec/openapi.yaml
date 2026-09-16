@@ -52,6 +52,58 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Service"
+  /catalog:
+    get:
+      operationId: listCatalog
+      tags: [control-plane]
+      summary: List ecosystem catalog entries
+      responses:
+        "200":
+          description: Ecosystem catalog entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CatalogItem"
+  /catalog/{manifestId}:
+    get:
+      operationId: getCatalogManifest
+      tags: [control-plane]
+      summary: Get detailed manifest for a catalog item
+      parameters:
+        - name: manifestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Detailed service manifest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManifestDetail"
+        "404":
+          description: Manifest not found
+  /services/install:
+    post:
+      operationId: installService
+      tags: [control-plane]
+      summary: Install a service manifest into the managed fleet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstallServiceRequest"
+      responses:
+        "200":
+          description: Installed managed service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
   /services/{serviceId}:
     get:
       operationId: getService
@@ -87,6 +139,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Service"
+        "404":
+          description: Service not found
+    delete:
+      operationId: removeService
+      tags: [control-plane]
+      summary: Remove a managed service from the fleet
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      responses:
+        "200":
+          description: Service removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoveServiceResponse"
         "404":
           description: Service not found
   /services/{serviceId}/action:
@@ -208,7 +275,7 @@ components:
           type: string
         category:
           type: string
-          enum: [llm, coding, automation, interface, orchestration]
+          enum: [llm, coding, automation, interface, orchestration, observability, tool, memory, runtime]
         status:
           type: string
           enum: [running, stopped, starting, warning]
@@ -234,6 +301,112 @@ components:
         accent:
           type: string
       required: [id, name, slug, description, category, status, health, version, port, image, uptime, cpuPercent, memory, configured, connections, accent]
+    CatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        upstreamUrl:
+          type: string
+        license:
+          type: string
+        image:
+          type: string
+        defaultPort:
+          type: integer
+        installed:
+          type: boolean
+        accent:
+          type: string
+      required: [id, name, tier, category, description, upstreamUrl, license, image, defaultPort, installed, accent]
+    ManifestDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        upstreamUrl:
+          type: string
+        license:
+          type: string
+        image:
+          type: string
+        defaultPort:
+          type: integer
+        ports:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortMapping"
+        env:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnvVarSpec"
+        capabilities:
+          type: array
+          items:
+            type: string
+        compatibleConnections:
+          type: array
+          items:
+            type: string
+        securityNote:
+          type: string
+      required: [id, name, tier, category, description, upstreamUrl, license, image, defaultPort, ports, env, capabilities, compatibleConnections, securityNote]
+    PortMapping:
+      type: object
+      properties:
+        containerPort:
+          type: integer
+        hostPort:
+          type: integer
+        label:
+          type: string
+      required: [containerPort, hostPort, label]
+    EnvVarSpec:
+      type: object
+      properties:
+        key:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        defaultValue:
+          type: string
+        secret:
+          type: boolean
+      required: [key, description, required, secret]
+    InstallServiceRequest:
+      type: object
+      properties:
+        manifestId:
+          type: string
+        customPort:
+          type: integer
+      required: [manifestId]
+    RemoveServiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        serviceId:
+          type: string
+      required: [success, serviceId]
     ServiceUpdate:
       type: object
       properties:

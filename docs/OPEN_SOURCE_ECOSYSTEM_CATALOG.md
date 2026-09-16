@@ -46,6 +46,8 @@ These are the highest-value integrations for the Hermes mission.
 | [LocalAI](https://github.com/mudler/LocalAI) | OpenAI-compatible local inference gateway | Existing core service and a practical backend for local models | Core |
 | [Ollama](https://github.com/ollama/ollama) | Local model runner | Simple model lifecycle and a widely used local endpoint | Core |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | High-performance local inference runtime | Useful low-level runtime for CPU, Metal, CUDA, and edge hosts | Core |
+| [oMLX](https://github.com/) | MLX inference server for agentic workflows | High-performance Apple Silicon runner with SSD-backed KV caching | Optional |
+| [MTPLX](https://github.com/) | Multi-Token Prediction (MTP) inference engine | Apple Silicon MLX runner with speculative MTP decoding for fast token speeds | Optional |
 | [LiteLLM](https://github.com/BerriAI/litellm) | LLM gateway, proxy, routing, budgets, and provider normalization | Mature policy and compatibility layer between agents and model backends | Core |
 | [OmniRouter](https://github.com/omnilabs-ai/OmniRouter) | Unified API interface and model switching layer | Directly matches the router portion of the Hermes mission | Optional / experimental |
 | [vLLM](https://github.com/vllm-project/vllm) | High-throughput model serving | Important for GPU hosts and multi-user deployments | Optional |
@@ -86,6 +88,7 @@ manifest so the catalog does not hide project maturity or breaking changes.
 | [OpenClaw](https://github.com/) | General local agent/orchestration service | Existing requested integration; keep it plugin-oriented |
 | [OpenDesign](https://github.com/) | Design-oriented local agent workspace | Existing requested integration; connect it to model routers and artifact workflows |
 | [Browser Use](https://github.com/browser-use/browser-use) | Browser automation agent | Run behind a browser sandbox with explicit navigation and secret policies |
+| [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) | Multi-agent codebase understanding & graph visualizer | Provide structural code dependencies, domain maps, and Karpathy wikis to coding agents |
 
 Agent manifests must describe workspace mounts, tool permissions, model
 endpoint, network policy, execution timeout, artifact outputs, and whether the
@@ -118,6 +121,8 @@ reference rather than a default Hermes integration.
 | [pgvector](https://github.com/pgvector/pgvector) | PostgreSQL vector extension | Prefer when the deployment already uses Hermes PostgreSQL |
 | [SearXNG](https://github.com/searxng/searxng) | Self-hosted metasearch | Local research tool for agents with transparent network policy |
 | [Playwright](https://github.com/microsoft/playwright) | Browser automation foundation | Use as a sandbox dependency for browser agents and verification flows |
+| [Opik MCP](https://github.com/comet-ml/opik-mcp) | MCP server for Opik observability | Expose Opik tracing, metrics, and prompt evaluation tools to AI coding agents |
+| [ccsync](https://github.com/comet-ml/ccsync) | Claude Code session sync tool | Background sidecar to sync Claude Code agent histories into Opik |
 
 Memory and retrieval services need a data-retention policy, export/delete
 behavior, embedding-model metadata, and tenant/workspace boundaries. They
@@ -128,6 +133,8 @@ should not be treated as anonymous sidecars.
 | Tool | Role | Hermes connection |
 | --- | --- | --- |
 | [Langfuse](https://github.com/langfuse/langfuse) | LLM tracing, prompts, costs, and evaluation | Recommended observability companion for routers and agents |
+| [Opik](https://github.com/comet-ml/opik) | Open-source LLM evaluation, prompt engineering, and tracing platform | Primary open-source observability companion for routers, agents, and local endpoints |
+| [Opik OpenClaw](https://github.com/comet-ml/opik-openclaw) | OpenClaw telemetry integration | Native connection plugin exporting OpenClaw agent traces and tool calls to Opik |
 | [Arize Phoenix](https://github.com/Arize-ai/phoenix) | Tracing and evaluation | Optional evaluation surface for agent and retrieval quality |
 | [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-collector) | Vendor-neutral telemetry pipeline | Standardize metrics, traces, and logs from every adapter |
 | [Jaeger](https://github.com/jaegertracing/jaeger) | Trace storage and UI | Lightweight local trace viewer for development |
@@ -179,11 +186,11 @@ look like a successful installation.
 
 ## Recommended rollout
 
-1. Core runtimes and interfaces: LocalAI, Ollama, llama.cpp, LiteLLM, Open WebUI.
+1. Core runtimes and interfaces: LocalAI, Ollama, llama.cpp, oMLX/MTPLX (Apple Silicon MLX), LiteLLM, Open WebUI.
 2. OmniRouter adapter as an experimental router with clear route telemetry.
 3. Core agents: OpenCode, OpenHands, Goose, OpenClaw, and Aider.
-4. Workflow and tools: n8n, MCP/FastMCP, Qdrant or pgvector, SearXNG.
-5. Observability: Langfuse and OpenTelemetry.
+4. Workflow and tools: n8n, MCP/FastMCP, Qdrant or pgvector, SearXNG, Understand-Anything, Opik MCP.
+5. Observability: Langfuse, Opik, and OpenTelemetry.
 6. Optional heavy stacks: vLLM, SGLang, Dify, Langflow, ComfyUI, speech tools.
 7. Evaluation, policy, and marketplace-style community manifests only after
    signature, provenance, and compatibility checks exist.

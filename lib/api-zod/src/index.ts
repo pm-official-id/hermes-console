@@ -1,2 +1,22 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  CatalogItem,
+  Connection,
+  ConnectionStatus,
+  EnvVarSpec,
+  HealthStatus,
+  HostStatus,
+  InstallServiceRequest,
+  LogLine,
+  LogLineStream,
+  ManifestDetail,
+  Overview,
+  PortMapping,
+  Service,
+  ServiceAction,
+  ServiceActionAction,
+  ServiceCategory,
+  ServiceHealth,
+  ServiceStatus,
+  ServiceUpdate,
+} from "./generated/types";

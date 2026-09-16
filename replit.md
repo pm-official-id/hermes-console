@@ -1,11 +1,11 @@
-# Hermes Console
+# LocAI Console
 
-Hermes Console is a local-first control plane for launching, connecting, configuring, and monitoring AI services from one Docker-style portal.
+LocAI Console is a local-first control plane for launching, connecting, configuring, and monitoring AI services from one Docker-style portal.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm --filter @workspace/hermes-console run dev` — run the web console
+- `pnpm --filter @workspace/locai-console run dev` — run the web console
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -23,8 +23,8 @@ Hermes Console is a local-first control plane for launching, connecting, configu
 
 ## Where things live
 
-- `artifacts/hermes-console/src/App.tsx` — console routes, service views, connection inspector, and settings
-- `artifacts/hermes-console/src/index.css` — Hermes Console visual tokens and responsive styles
+- `artifacts/locai-console/src/App.tsx` — console routes, service views, connection inspector, and settings
+- `artifacts/locai-console/src/index.css` — LocAI Console visual tokens and responsive styles
 - `artifacts/api-server/src/routes/control-plane.ts` — control-plane API state model and lifecycle endpoints
 - `lib/api-spec/openapi.yaml` — source-of-truth API contract for overview, services, logs, and connections
 
