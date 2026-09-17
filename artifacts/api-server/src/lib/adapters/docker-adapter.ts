@@ -12,10 +12,12 @@ export class DockerHostAdapter extends MockHostAdapter implements HostAdapter {
   private docker: Docker;
   private dockerEndpoint: string;
 
-  constructor(dockerEndpoint: string = "/var/run/docker.sock") {
+  constructor(dockerEndpoint?: string) {
     super();
-    this.dockerEndpoint = dockerEndpoint;
-    this.docker = new Docker({ socketPath: dockerEndpoint });
+    this.dockerEndpoint = dockerEndpoint || process.env.DOCKER_SOCKET_PATH || process.env.DOCKER_HOST || "/var/run/docker.sock";
+    this.docker = (dockerEndpoint || process.env.DOCKER_SOCKET_PATH) 
+        ? new Docker({ socketPath: this.dockerEndpoint }) 
+        : new Docker();
   }
 
   override async getCapabilities(): Promise<HostAdapterCapabilities> {

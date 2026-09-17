@@ -65,6 +65,7 @@ import {
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import './index.css';
@@ -248,6 +249,7 @@ function SummaryRail({ overview }: { overview: Overview }) {
 }
 
 function ServiceActionButtons({ service, compact = false }: { service: Service; compact?: boolean }) {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const control = useControlService();
   const busy = control.isPending;
@@ -258,12 +260,17 @@ function ServiceActionButtons({ service, compact = false }: { service: Service; 
       const verb = value === 'restart' ? 'restart' : 'stop';
       if (!window.confirm(`Are you sure you want to ${verb} ${service.name}?`)) return;
     }
+    const { id, update } = toast({ title: `${value === 'start' ? 'Starting' : value === 'stop' ? 'Stopping' : 'Restarting'} ${service.name}...` });
     control.mutate({ serviceId: service.id, data: { action: value } }, {
       onSuccess: () => {
+        update({ id, title: 'Success', description: `${service.name} ${value}ed successfully` });
         queryClient.invalidateQueries({ queryKey: getListServicesQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetServiceQueryKey(service.id) });
         queryClient.invalidateQueries({ queryKey: getGetServiceLogsQueryKey(service.id) });
       },
+      onError: (err) => {
+        update({ id, variant: 'destructive', title: 'Action Failed', description: err.message || `Failed to ${value} ${service.name}` });
+      }
     });
   };
   const canStart = service.status !== 'running' && service.status !== 'starting';
@@ -294,21 +301,27 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 function ManifestModal({ manifestId, onClose }: { manifestId: string; onClose: () => void }) {
+  const { toast } = useToast();
   const manifest = useGetCatalogManifest(manifestId, { query: { queryKey: getGetCatalogManifestQueryKey(manifestId) } });
   const install = useInstallService();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const handleInstall = () => {
+    const { id, update } = toast({ title: `Installing ${manifest.data?.name || manifestId}...`, description: 'This may take a minute if the image needs to be downloaded.' });
     install.mutate(
       { data: { manifestId } },
       {
         onSuccess: (data) => {
+          update({ id, title: 'Service Installed', description: `${data.name} is now ready to use` });
           queryClient.invalidateQueries({ queryKey: getListServicesQueryKey() });
           queryClient.invalidateQueries({ queryKey: getListCatalogQueryKey() });
           onClose();
           setLocation(`/services/${data.id}`);
         },
+        onError: (err) => {
+          update({ id, variant: 'destructive', title: 'Installation Failed', description: err.message || 'Something went wrong' });
+        }
       }
     );
   };
@@ -633,6 +646,7 @@ function ServiceDetailPage() {
 }
 
 function ServiceDetail({ service }: { service: Service }) {
+  const { toast } = useToast();
   const accentStyle = { '--service-accent': service.accent || '#1e928c' } as CSSProperties;
   const removeService = useRemoveService();
   const queryClient = useQueryClient();
@@ -641,14 +655,19 @@ function ServiceDetail({ service }: { service: Service }) {
   const handleRemove = (e: React.MouseEvent) => {
     e.preventDefault();
     if (window.confirm(`Are you sure you want to remove ${service.name} from the fleet?`)) {
+      const { id, update } = toast({ title: `Removing ${service.name}...` });
       removeService.mutate(
         { serviceId: service.id },
         {
           onSuccess: () => {
+            update({ id, title: 'Service Removed', description: `${service.name} has been removed` });
             queryClient.invalidateQueries({ queryKey: getListServicesQueryKey() });
             queryClient.invalidateQueries({ queryKey: getListCatalogQueryKey() });
             setLocation('/services');
           },
+          onError: (err) => {
+            update({ id, variant: 'destructive', title: 'Error', description: err.message || `Failed to remove ${service.name}` });
+          }
         }
       );
     }

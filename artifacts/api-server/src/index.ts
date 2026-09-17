@@ -21,5 +21,5 @@ app.listen(port, (err) => {
     process.exit(1);
   }
 
-  logger.info({ port }, "Server listening");
+  logger.info({ port, dockerEndpoint: process.env.DOCKER_SOCKET_PATH || process.env.DOCKER_HOST || "/var/run/docker.sock" }, "Server listening");
 });
