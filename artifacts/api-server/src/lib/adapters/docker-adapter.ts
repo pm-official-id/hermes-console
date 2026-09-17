@@ -128,6 +128,21 @@ export class DockerHostAdapter extends MockHostAdapter implements HostAdapter {
     }
   }
 
+  override async removeService(serviceId: string): Promise<{ success: boolean; serviceId: string }> {
+    try {
+      const container = this.docker.getContainer(serviceId);
+      try {
+        await container.stop();
+      } catch (e) {
+        // Ignore errors if container is already stopped or cannot be stopped
+      }
+      await container.remove();
+      return { success: true, serviceId };
+    } catch (e) {
+      return super.removeService(serviceId);
+    }
+  }
+
   override async getServiceLogs(serviceId: string): Promise<LogLine[]> {
     try {
       const container = this.docker.getContainer(serviceId);

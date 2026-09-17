@@ -251,7 +251,9 @@ function ServiceActionButtons({ service, compact = false }: { service: Service; 
   const queryClient = useQueryClient();
   const control = useControlService();
   const busy = control.isPending;
-  const action = (value: 'start' | 'stop' | 'restart') => {
+  const action = (e: React.MouseEvent, value: 'start' | 'stop' | 'restart') => {
+    e.preventDefault();
+    e.stopPropagation();
     if ((value === 'stop' || value === 'restart') && localStorage.getItem('hermes-confirm-actions') !== 'false') {
       const verb = value === 'restart' ? 'restart' : 'stop';
       if (!window.confirm(`Are you sure you want to ${verb} ${service.name}?`)) return;
@@ -268,12 +270,12 @@ function ServiceActionButtons({ service, compact = false }: { service: Service; 
   return (
     <div className={cn('service-actions', compact && 'service-actions-compact')}>
       {service.port > 0 && service.status === 'running' && (
-        <a href={`http://localhost:${service.port}`} target="_blank" rel="noreferrer" className="button button-quiet" data-testid={`button-open-${service.id}`}>
+        <a href={`http://localhost:${service.port}`} target="_blank" rel="noreferrer" className="button button-quiet" data-testid={`button-open-${service.id}`} onClick={(e) => e.stopPropagation()}>
           <ExternalLink size={14} /> Open
         </a>
       )}
-      {canStart ? <button className="button button-primary" disabled={busy} onClick={() => action('start')} data-testid={`button-start-${service.id}`}><Play size={14} /> Start</button> : <button className="button button-quiet" disabled={busy} onClick={() => action('stop')} data-testid={`button-stop-${service.id}`}><Square size={13} /> Stop</button>}
-      <button className="button button-quiet icon-action" disabled={busy} onClick={() => action('restart')} aria-label={`Restart ${service.name}`} data-testid={`button-restart-${service.id}`}><RotateCcw size={14} /></button>
+      {canStart ? <button type="button" className="button button-primary" disabled={busy} onClick={(e) => action(e, 'start')} data-testid={`button-start-${service.id}`}><Play size={14} /> Start</button> : <button type="button" className="button button-quiet" disabled={busy} onClick={(e) => action(e, 'stop')} data-testid={`button-stop-${service.id}`}><Square size={13} /> Stop</button>}
+      <button type="button" className="button button-quiet icon-action" disabled={busy} onClick={(e) => action(e, 'restart')} aria-label={`Restart ${service.name}`} data-testid={`button-restart-${service.id}`}><RotateCcw size={14} /></button>
     </div>
   );
 }
@@ -636,7 +638,8 @@ function ServiceDetail({ service }: { service: Service }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const handleRemove = () => {
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (window.confirm(`Are you sure you want to remove ${service.name} from the fleet?`)) {
       removeService.mutate(
         { serviceId: service.id },
@@ -664,7 +667,7 @@ function ServiceDetail({ service }: { service: Service }) {
           <div className="detail-status">
             <StatusDot status={service.status} label={service.status} />
             <ServiceActionButtons service={service} />
-            <button className="button button-quiet" style={{ color: '#ef4444' }} onClick={handleRemove} disabled={removeService.isPending}>
+            <button type="button" className="button button-quiet" style={{ color: '#ef4444' }} onClick={handleRemove} disabled={removeService.isPending}>
               <Trash2 size={14} /> Remove
             </button>
           </div>
