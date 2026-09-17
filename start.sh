@@ -5,16 +5,16 @@
 # Usage:  ./start.sh [--api-port <port>] [--ui-port <port>]
 #         ./start.sh --help
 #
-# Opens two terminal windows/tabs:
-#   • Window 1: API server  (Express + DockerAdapter)  → default :4001
-#   • Window 2: Frontend    (Vite dev server)           → default :4002
+# Opens two terminal windows:
+#   • Window 1 — API server  (Express + DockerAdapter)  → default :4001
+#   • Window 2 — Frontend    (Vite dev server)           → default :4002
 #
-# The Vite server proxies /api/* to the API server automatically.
+# The Vite server proxies /api/* → API server automatically.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Defaults ─────────────────────────────────────────────────────────────────
+# ── Defaults ──────────────────────────────────────────────────────────────────
 API_PORT=4001
 UI_PORT=4002
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,8 +33,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --api-port PORT   Port for the Express API server  (default: 4001)"
       echo "  --ui-port  PORT   Port for the Vite dev server     (default: 4002)"
       echo ""
-      echo "Access the app at: http://localhost:\$UI_PORT"
-      echo "API is available at: http://localhost:\$API_PORT/api"
+      echo "Access the app at:  http://localhost:<UI_PORT>"
+      echo "API health check:   http://localhost:<API_PORT>/api/healthz"
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -55,99 +55,127 @@ warn() { echo -e "${YELLOW}[hermes]${RESET} $*"; }
 fail() { echo -e "${RED}[hermes]${RESET} $*" >&2; exit 1; }
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
-command -v bun  >/dev/null 2>&1 || fail "bun is not installed. Visit https://bun.sh to install it."
+command -v bun  >/dev/null 2>&1 || fail "bun is not installed. Visit https://bun.sh"
 command -v node >/dev/null 2>&1 || fail "node is not installed."
 
-# Check ports are free
+# Warn (but don't abort) if ports are occupied
 for PORT_CHECK in "$API_PORT" "$UI_PORT"; do
   if lsof -iTCP:"$PORT_CHECK" -sTCP:LISTEN -t >/dev/null 2>&1; then
-    warn "Port $PORT_CHECK is already in use. Choose a different port with --api-port / --ui-port."
+    warn "Port $PORT_CHECK is already in use — the server may fail to bind."
   fi
 done
 
-# ── Build API server if dist is missing ──────────────────────────────────────
+# ── Build API server if dist is missing ───────────────────────────────────────
 if [[ ! -f "$API_DIR/dist/index.mjs" ]]; then
   log "Building API server for the first time…"
   (cd "$API_DIR" && bun run build)
   ok "API server built."
 fi
 
-# ── Commands to run in each terminal ─────────────────────────────────────────
-API_CMD="echo -e '\\033[1;36m── LocAI API Server (port $API_PORT) ──\\033[0m'; \
-  cd \"$API_DIR\" && \
-  PORT=$API_PORT NODE_ENV=development node --enable-source-maps ./dist/index.mjs; \
-  echo -e '\\033[1;31mAPI server exited.\\033[0m'; read -r -p 'Press Enter to close…'"
+# ── Write launcher scripts to temp files ──────────────────────────────────────
+# Embedding commands with quotes directly inside AppleScript strings causes
+# syntax errors; writing them to temp files sidesteps this entirely.
+TMP_API=$(mktemp /tmp/hermes-api-XXXXXX.sh)
+TMP_UI=$(mktemp  /tmp/hermes-ui-XXXXXX.sh)
 
-UI_CMD="echo -e '\\033[1;36m── LocAI Frontend Dev Server (port $UI_PORT) ──\\033[0m'; \
-  sleep 1; \
-  cd \"$UI_DIR\" && \
-  PORT=$UI_PORT BASE_PATH=/ API_PORT=$API_PORT bun run dev; \
-  echo -e '\\033[1;31mFrontend exited.\\033[0m'; read -r -p 'Press Enter to close…'"
+# Ensure temp files are removed when the script exits
+trap 'rm -f "$TMP_API" "$TMP_UI"' EXIT
+
+cat > "$TMP_API" <<SCRIPT
+#!/usr/bin/env bash
+printf '\\033[1;36m── LocAI API Server (port $API_PORT) ──\\033[0m\\n'
+cd '$API_DIR'
+PORT=$API_PORT NODE_ENV=development node --enable-source-maps ./dist/index.mjs
+printf '\\033[1;31m\\nAPI server exited. Press Enter to close.\\033[0m\\n'
+read -r
+SCRIPT
+
+cat > "$TMP_UI" <<SCRIPT
+#!/usr/bin/env bash
+printf '\\033[1;36m── LocAI Frontend (port $UI_PORT) ──\\033[0m\\n'
+sleep 1
+cd '$UI_DIR'
+PORT=$UI_PORT BASE_PATH=/ API_PORT=$API_PORT bun run dev
+printf '\\033[1;31m\\nFrontend exited. Press Enter to close.\\033[0m\\n'
+read -r
+SCRIPT
+
+chmod +x "$TMP_API" "$TMP_UI"
 
 # ── OS-specific terminal launch ───────────────────────────────────────────────
 OS="$(uname -s)"
 
-open_terminal() {
+open_terminal_macos() {
   local title="$1"
-  local cmd="$2"
+  local script_path="$2"
 
-  if [[ "$OS" == "Darwin" ]]; then
-    # ── macOS: prefer iTerm2, fall back to Terminal.app ──────────────────
-    if osascript -e 'tell application "iTerm2" to version' >/dev/null 2>&1; then
-      osascript <<APPLESCRIPT
+  # Try iTerm2 first
+  if osascript -e 'tell application "iTerm2" to get version' >/dev/null 2>&1; then
+    osascript <<APPLESCRIPT
 tell application "iTerm2"
+  activate
   tell current window
     create tab with default profile
     tell current session of current tab
       set name to "$title"
-      write text "$cmd"
+      write text "exec $script_path"
     end tell
   end tell
 end tell
 APPLESCRIPT
-    else
-      # Terminal.app
-      osascript <<APPLESCRIPT
+  else
+    # Fall back to Terminal.app — use a separate window per service
+    osascript <<APPLESCRIPT
 tell application "Terminal"
-  do script "$cmd"
-  set custom title of tab 1 of window 1 to "$title"
+  activate
+  do script "exec $script_path"
 end tell
 APPLESCRIPT
-    fi
+  fi
+}
 
-  elif [[ "$OS" == "Linux" ]]; then
-    # ── Linux: try common terminal emulators in order ────────────────────
-    if command -v gnome-terminal >/dev/null 2>&1; then
-      gnome-terminal --title="$title" -- bash -c "$cmd; exec bash"
-    elif command -v xterm >/dev/null 2>&1; then
-      xterm -title "$title" -e bash -c "$cmd; exec bash" &
-    elif command -v konsole >/dev/null 2>&1; then
-      konsole --new-tab -p tabtitle="$title" -e bash -c "$cmd; exec bash" &
-    elif command -v xfce4-terminal >/dev/null 2>&1; then
-      xfce4-terminal --title="$title" -e "bash -c \"$cmd; exec bash\"" &
-    else
-      fail "No supported terminal emulator found (tried gnome-terminal, xterm, konsole, xfce4-terminal)."
-    fi
+open_terminal_linux() {
+  local title="$1"
+  local script_path="$2"
 
+  if command -v gnome-terminal >/dev/null 2>&1; then
+    gnome-terminal --title="$title" -- bash "$script_path"
+  elif command -v xterm >/dev/null 2>&1; then
+    xterm -title "$title" -e bash "$script_path" &
+  elif command -v konsole >/dev/null 2>&1; then
+    konsole --new-tab -p "tabtitle=$title" -e bash "$script_path" &
+  elif command -v xfce4-terminal >/dev/null 2>&1; then
+    xfce4-terminal --title="$title" -e "bash $script_path" &
   else
-    fail "Unsupported OS: $OS. Run the two commands manually:\n  API:      cd artifacts/api-server  && PORT=$API_PORT bun run dev\n  Frontend: cd artifacts/locai-console && PORT=$UI_PORT BASE_PATH=/ API_PORT=$API_PORT bun run dev"
+    fail "No supported terminal emulator found (tried gnome-terminal, xterm, konsole, xfce4-terminal)."
   fi
 }
 
 # ── Launch! ───────────────────────────────────────────────────────────────────
 log "Starting LocAI Console…"
-log "  API server  → http://localhost:${API_PORT}/api"
-log "  Frontend    → http://localhost:${UI_PORT}"
+log "  API server → http://localhost:${API_PORT}/api"
+log "  Frontend   → http://localhost:${UI_PORT}"
 echo ""
 
-open_terminal "LocAI — API Server [:$API_PORT]"   "$API_CMD"
-sleep 0.5
-open_terminal "LocAI — Frontend   [:$UI_PORT]"    "$UI_CMD"
+if [[ "$OS" == "Darwin" ]]; then
+  open_terminal_macos "LocAI — API Server [:$API_PORT]" "$TMP_API"
+  sleep 0.5
+  open_terminal_macos "LocAI — Frontend   [:$UI_PORT]"  "$TMP_UI"
+elif [[ "$OS" == "Linux" ]]; then
+  open_terminal_linux "LocAI — API Server [:$API_PORT]" "$TMP_API"
+  sleep 0.5
+  open_terminal_linux "LocAI — Frontend   [:$UI_PORT]"  "$TMP_UI"
+else
+  fail "Unsupported OS: $OS"
+fi
 
 echo ""
 ok "Both terminals launched."
-echo -e "  ${BOLD}Open the app:${RESET}  http://localhost:${UI_PORT}"
-echo -e "  ${BOLD}API health:${RESET}    http://localhost:${API_PORT}/api/healthz"
+echo -e "  ${BOLD}App URL:${RESET}    http://localhost:${UI_PORT}"
+echo -e "  ${BOLD}API health:${RESET} http://localhost:${API_PORT}/api/healthz"
 echo ""
-echo -e "  ${YELLOW}Tip:${RESET} To rebuild the API server after code changes:"
+echo -e "  ${YELLOW}Tip:${RESET} Rebuild API after code changes:"
 echo -e "       cd artifacts/api-server && bun run build"
+
+# Keep temp files alive long enough for the terminal to exec them
+sleep 3
