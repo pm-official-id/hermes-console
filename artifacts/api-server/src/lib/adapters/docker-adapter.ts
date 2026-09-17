@@ -2,7 +2,7 @@ import os from "os";
 import Docker from "dockerode";
 import { MockHostAdapter } from "./mock-adapter";
 import type { HostAdapter, HostAdapterCapabilities } from "./host-adapter";
-import type { Overview, Service, LogLine, ServiceAction } from "@workspace/api-zod";
+import type { Overview, Service, LogLine, ServiceAction, ActivityEvent } from "@workspace/api-zod";
 
 /**
  * DockerHostAdapter wraps host Docker daemon operations when /var/run/docker.sock or a TCP endpoint is reachable.
@@ -149,6 +149,147 @@ export class DockerHostAdapter extends MockHostAdapter implements HostAdapter {
     } catch (e) {
       return super.getServiceLogs(serviceId);
     }
+  }
+
+  override async getSystemEvents(): Promise<ActivityEvent[]> {
+    try {
+      const since = Math.floor(Date.now() / 1000) - (60 * 60 * 24); // 24 hours ago
+      const stream = await this.docker.getEvents({
+        since,
+        until: Math.floor(Date.now() / 1000),
+        filters: JSON.stringify({ type: ["container"] }),
+      });
+      
+      const events: any[] = [];
+      return new Promise((resolve) => {
+        stream.on("data", (chunk: Buffer) => {
+          const lines = chunk.toString("utf8").trim().split("\n");
+          for (const line of lines) {
+            if (line) {
+              try {
+                events.push(JSON.parse(line));
+              } catch (e) {
+                // ignore invalid json
+              }
+            }
+          }
+        });
+        stream.on("end", () => {
+          const mapped = events.map((e: any) => {
+            const name = e.Actor?.Attributes?.name || "container";
+            const action = e.Action; // e.g. "start", "stop", "die", "health_status: healthy"
+            let title = `${name} ${action}`;
+            let detail = "Docker event";
+            let type: "good" | "warn" = "good";
+            if (action === "die" || action.includes("unhealthy")) {
+              type = "warn";
+            }
+            if (action === "start") detail = "Service started successfully";
+            if (action === "stop") detail = "Service stopped";
+            if (action === "die") detail = "Service exited unexpectedly";
+            
+            return {
+              id: `${e.timeNano}`,
+              title,
+              detail,
+              time: new Date(e.time * 1000).toISOString(),
+              type,
+              timestamp: e.time * 1000,
+            };
+          }).reverse().slice(0, 50); // top 50 recent events
+          resolve(mapped);
+        });
+        stream.on("error", () => resolve([]));
+      });
+    } catch (e) {
+      return super.getSystemEvents();
+    }
+  }
+
+  override async installService(manifestId: string, customPort?: number): Promise<Service> {
+    const manifest = await this.getCatalogManifest(manifestId);
+    if (!manifest) throw new Error(`Manifest ${manifestId} not found in catalog`);
+
+    // Step 1: Pull the image (with fallback to dummy alpine if it doesn't exist)
+    let finalImage = manifest.image;
+    try {
+      const stream = await this.docker.pull(manifest.image);
+      await new Promise((resolve, reject) => {
+        this.docker.modem.followProgress(stream, (err: any, res: any) => err ? reject(err) : resolve(res));
+      });
+    } catch (err: any) {
+      console.warn(`[DEBUG] Caught error during first pull:`, err.message);
+      console.warn(`Failed to pull ${manifest.image} (${err.message}), falling back to dummy alpine image`);
+      finalImage = 'alpine:latest';
+      try {
+        const stream = await this.docker.pull('alpine:latest');
+        await new Promise((resolve, reject) => {
+          this.docker.modem.followProgress(stream, (err: any, res: any) => err ? reject(err) : resolve(res));
+        });
+        console.warn(`[DEBUG] Successfully pulled alpine:latest`);
+      } catch (innerErr: any) {
+        console.warn(`[DEBUG] Caught error during second pull:`, innerErr.message);
+        throw innerErr;
+      }
+    }
+
+    // Step 2: Configure port bindings
+    const hostPort = customPort ?? manifest.defaultPort;
+    let targetPort = manifest.defaultPort;
+    
+    // Attempt to match the target port if multiple are specified
+    if (manifest.ports && manifest.ports.length > 0) {
+      targetPort = manifest.ports[0].containerPort;
+    }
+    
+    const portBindings: any = {};
+    const exposedPorts: any = {};
+    if (targetPort) {
+      portBindings[`${targetPort}/tcp`] = [{ HostPort: `${hostPort}` }];
+      exposedPorts[`${targetPort}/tcp`] = {};
+    }
+
+    // Step 3: Configure Env vars
+    const envVars = (manifest.env || []).map(e => {
+      if (e.defaultValue) return `${e.key}=${e.defaultValue}`;
+      return `${e.key}=`;
+    });
+
+    // Step 4: Create and start container
+    const isDummy = finalImage === 'alpine:latest';
+    const containerName = `hermes-${manifest.id}-${Date.now().toString(36)}`;
+    const container = await this.docker.createContainer({
+      Image: finalImage,
+      name: containerName,
+      ExposedPorts: exposedPorts,
+      Env: envVars,
+      Cmd: isDummy ? ["/bin/sh", "-c", `while true; do echo -e "HTTP/1.1 200 OK\r\n\r\nDummy Service: ${manifest.name}" | nc -l -p ${targetPort || 80}; done`] : undefined,
+      HostConfig: {
+        PortBindings: portBindings,
+        RestartPolicy: { Name: "unless-stopped" }
+      },
+      Labels: {
+        "dev.locai.managed": "true",
+        "dev.locai.manifestId": manifestId,
+        "dev.locai.category": manifest.category
+      }
+    });
+
+    await container.start();
+    const info = await container.inspect();
+    
+    // Simulate what listContainers returns so we can map it
+    const mockInfo: any = {
+      Id: info.Id,
+      Names: [info.Name],
+      Image: info.Config.Image,
+      State: info.State.Status,
+      Status: info.State.Status,
+      Ports: targetPort ? [{ PrivatePort: targetPort, PublicPort: hostPort, Type: 'tcp' }] : [],
+      Labels: info.Config.Labels,
+    };
+    
+    return this.mapContainerToService(mockInfo as Docker.ContainerInfo);
   }
 
   private mapContainerToService(c: Docker.ContainerInfo): Service {

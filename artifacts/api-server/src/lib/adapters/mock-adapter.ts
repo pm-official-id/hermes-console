@@ -7,6 +7,7 @@ import type {
   Connection,
   ServiceAction,
   ServiceUpdate,
+  ActivityEvent,
 } from "@workspace/api-zod";
 import type { HostAdapter, HostAdapterCapabilities } from "./host-adapter";
 
@@ -39,7 +40,7 @@ const CATALOG_MANIFESTS: Record<string, ManifestDetail> = {
     tier: "Tier 1: Core Runtimes",
     category: "runtime",
     description: "MLX inference server for agentic coding workflows with SSD-backed tiered KV caching.",
-    upstreamUrl: "https://github.com/comet-ml/opik",
+    upstreamUrl: "https://github.com/mlx-ai/omlx",
     license: "MIT",
     image: "ghcr.io/mlx-ai/omlx:latest",
     defaultPort: 8000,
@@ -58,7 +59,7 @@ const CATALOG_MANIFESTS: Record<string, ManifestDetail> = {
     tier: "Tier 1: Core Runtimes",
     category: "runtime",
     description: "Multi-Token Prediction (MTP) inference engine using speculative decoding on Apple Silicon.",
-    upstreamUrl: "https://github.com/",
+    upstreamUrl: "https://github.com/mlx-ai/mtplx",
     license: "MIT",
     image: "ghcr.io/mlx-ai/mtplx:latest",
     defaultPort: 8001,
@@ -459,6 +460,19 @@ export class MockHostAdapter implements HostAdapter {
   async getServiceLogs(serviceId: string): Promise<LogLine[]> {
     return this.logs[serviceId] || [
       { id: "def-1", timestamp: new Date().toISOString(), stream: "system", message: `Log stream attached for ${serviceId}` },
+    ];
+  }
+
+  async getSystemEvents(): Promise<ActivityEvent[]> {
+    return [
+      {
+        id: "mock-1",
+        title: "locai-console is running",
+        detail: "health check passing",
+        time: new Date().toISOString(),
+        type: "good",
+        timestamp: Date.now(),
+      },
     ];
   }
 

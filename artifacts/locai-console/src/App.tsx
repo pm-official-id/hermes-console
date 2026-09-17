@@ -1,5 +1,5 @@
 import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import {
   Activity,
   AlertCircle,
@@ -76,6 +76,7 @@ const navItems = [
   { href: '/services', label: 'Services', icon: Box },
   { href: '/catalog', label: 'Catalog', icon: ArrowDownToLine },
   { href: '/connections', label: 'Connections', icon: Network },
+  { href: '/activity', label: 'Activity', icon: Activity },
   { href: '/settings', label: 'Settings', icon: SlidersHorizontal },
 ];
 
@@ -96,6 +97,24 @@ const fallbackActivity = [
   { time: 'recent', title: 'Telemetry window refreshed', detail: 'host metrics sampled from Docker', type: 'telemetry' },
   { time: 'ready', title: 'Lifecycle controls armed', detail: 'actions require one deliberate click', type: 'action' },
 ];
+
+export interface ActivityEvent {
+  id: string;
+  time?: string;
+  title: string;
+  detail: string;
+  type?: string;
+  timestamp: number;
+}
+
+export const getGetActivityQueryKey = () => ['activity'];
+
+export const useGetActivity = ({ query }: { query?: Partial<UseQueryOptions<ActivityEvent[], Error>> } = {}) =>
+  useQuery<ActivityEvent[], Error>({
+    queryKey: getGetActivityQueryKey(),
+    queryFn: () => fetch('/api/activity').then((res) => res.json()),
+    ...query,
+  });
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
@@ -478,7 +497,7 @@ function ActivityPanel({ overview, services }: { overview: Overview; services: S
   const activity = items.length ? items : fallbackActivity;
   return (
     <section className="panel activity-panel fade-up fade-up-delay-3" data-testid="panel-recent-activity">
-      <div className="panel-heading"><div><span className="eyebrow">Recent activity</span><h2>Signal trail</h2></div><span className="text-button" data-testid="text-activity-scope">Live window <ArrowRight size={14} /></span></div>
+      <div className="panel-heading"><div><span className="eyebrow">Recent activity</span><h2>Signal trail</h2></div><Link href="/activity" className="text-button" data-testid="link-activity-scope">Live window <ArrowRight size={14} /></Link></div>
       <div className="activity-list">{activity.map((item, index) => <div className="activity-row" key={`${item.title}-${index}`}><span className={cn('activity-icon', item.type === 'warn' ? 'activity-warn' : 'activity-good')}><Activity size={14} /></span><div className="activity-copy"><strong>{item.title}</strong><span>{item.detail}</span></div><time>{item.time}</time></div>)}</div>
       <div className="activity-foot"><span className="live-orb small signal-pulse" /> listening for new events <span className="font-mono-ui">/var/run/hermes/events</span></div>
     </section>
@@ -505,6 +524,53 @@ function OverviewPage() {
       <div className="section-heading fade-up fade-up-delay-2"><div><span className="eyebrow">Managed fleet</span><h2>Services in the room</h2></div><Link href="/services" className="text-button" data-testid="link-all-services">Service catalog <ArrowRight size={14} /></Link></div>
       <QueryState loading={services.isLoading} error={services.error} onRetry={() => void services.refetch()}>{services.data && services.data.length > 0 ? <div className="service-grid">{services.data.slice(0, 4).map((service) => <ServiceCard service={service} key={service.id} />)}</div> : <div className="state-card" data-testid="empty-overview-services"><Box size={18} /><span>No managed services have been discovered yet.</span></div>}</QueryState>
       <QueryState loading={connections.isLoading} error={connections.error} onRetry={() => void connections.refetch()}>{connections.data && <MiniTopology connections={connections.data} />}</QueryState>
+    </div>
+  );
+}
+
+function ActivityPage() {
+  const activity = useGetActivity({ query: { refetchInterval: 5000 } });
+  
+  return (
+    <div className="content-wrap surface-grid">
+      <PageHeader eyebrow="Live window" title="Signal trail" description="A chronologically ordered stream of system events." actions={<button className="button button-quiet" onClick={() => void activity.refetch()}><RefreshCw size={15} /> Refresh feed</button>} />
+      
+      <QueryState loading={activity.isLoading} error={activity.error} onRetry={() => void activity.refetch()}>
+        {activity.data && (
+          <div className="panel">
+            <div className="panel-heading">
+              <div>
+                <h2>Event Feed</h2>
+              </div>
+            </div>
+            <div className="activity-list" style={{ minHeight: '400px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {activity.data.length === 0 ? (
+                <div className="empty-state compact-empty">
+                  <Activity size={20} />
+                  <strong>No recent activity</strong>
+                  <span>Waiting for system events to occur.</span>
+                </div>
+              ) : (
+                activity.data.map((item, index) => (
+                  <div className="activity-row" key={`${item.id}-${index}`}>
+                    <span className={cn('activity-icon', item.type === 'warn' ? 'activity-warn' : 'activity-good')}>
+                      <Activity size={14} />
+                    </span>
+                    <div className="activity-copy">
+                      <strong>{item.title}</strong>
+                      <span>{item.detail}</span>
+                    </div>
+                    <time>{item.time ? formatTime(item.time) : ''}</time>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="activity-foot">
+              <span className="live-orb small signal-pulse" /> streaming from Docker daemon
+            </div>
+          </div>
+        )}
+      </QueryState>
     </div>
   );
 }
@@ -662,6 +728,7 @@ function Router() {
           <Route path="/" component={OverviewPage} />
           <Route path="/services" component={ServicesPage} />
           <Route path="/services/:id" component={ServiceDetailPage} />
+          <Route path="/activity" component={ActivityPage} />
           <Route path="/catalog" component={CatalogPage} />
           <Route path="/connections" component={ConnectionsPage} />
           <Route path="/settings" component={SettingsPage} />

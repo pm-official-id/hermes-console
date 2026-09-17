@@ -141,4 +141,13 @@ router.get("/connections", async (_req, res) => {
   }
 });
 
+router.get("/activity", async (_req, res) => {
+  try {
+    const events = await adapter.getSystemEvents();
+    res.json(events);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to list activity events" });
+  }
+});
+
 export default router;

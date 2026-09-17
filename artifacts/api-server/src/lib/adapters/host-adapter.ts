@@ -7,6 +7,7 @@ import type {
   Connection,
   ServiceAction,
   ServiceUpdate,
+  ActivityEvent,
 } from "@workspace/api-zod";
 
 export interface HostAdapterCapabilities {
@@ -31,4 +32,5 @@ export interface HostAdapter {
   installService(manifestId: string, customPort?: number): Promise<Service>;
   getServiceLogs(serviceId: string): Promise<LogLine[]>;
   listConnections(): Promise<Connection[]>;
+  getSystemEvents(): Promise<ActivityEvent[]>;
 }
