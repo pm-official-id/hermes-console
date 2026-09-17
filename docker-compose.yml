@@ -5,19 +5,26 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: locai-console:latest
     container_name: locai-console
     ports:
-      - "5001:5000"
+      - "${HOST_PORT:-5001}:5000"
     volumes:
-      # Mount host Docker socket so LocAI Console can discover and control host services
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount host Docker socket so LocAI Console can discover and control
+      # containers running on the host machine via the DockerHostAdapter.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - PORT=5000
       - NODE_ENV=production
       - DOCKER_HOST=unix:///var/run/docker.sock
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://localhost:5000/api/healthz').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://localhost:5000/api/healthz').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
       interval: 15s
       timeout: 5s
+      start_period: 10s
       retries: 3

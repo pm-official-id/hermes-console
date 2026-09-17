@@ -1,0 +1,32 @@
+# ── Dependency caches ──────────────────────────────────────────────────────────
+node_modules
+.bun-cache
+.pnpm-store
+.local
+
+# ── Build artefacts (regenerated inside Docker) ───────────────────────────────
+dist
+artifacts/api-server/dist
+artifacts/locai-console/dist
+artifacts/mockup-sandbox/dist
+lib/*/dist
+*.tsbuildinfo
+
+# ── Version control & IDE ─────────────────────────────────────────────────────
+.git
+.gitignore
+.DS_Store
+.idea
+.vscode
+*.launch
+
+# ── Docs & non-essential files ────────────────────────────────────────────────
+docs
+README.md
+replit.md
+*.md
+
+# ── Local dev configs ─────────────────────────────────────────────────────────
+.replit
+.replitignore
+start.sh
